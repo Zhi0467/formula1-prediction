@@ -1,0 +1,112 @@
+project_paths:
+  raw_data: "data/raw/"
+  processed_data: "data/processed/"
+  trained_models: "trained_models/"
+  log_file: "logs/f1_predictor.log"
+
+data_sources:
+  jolpica:
+    enabled: true
+    # api_key: "YOUR_API_KEY" # If needed
+  fastf1:
+    enabled: true
+    cache_path: "fastf1_cache/"
+  openf1:
+    enabled: true
+  weather:
+    enabled: true
+    api_key: "YOUR_WEATHER_API_KEY"
+    default_location_mapping_csv: "data/raw/track_to_location.csv"
+  polymarket:
+    enabled: true
+    event_slug: "formula-1-next-race" # Example
+
+feature_engineering:
+  common:
+    # Preprocessing steps
+    standardize_driver_names: true
+    standardize_team_names: true
+  core_features:
+    recent_k_races: 5
+    # Other parameters for core features
+    include_qualifying_data: true
+    include_weather_data: true
+  lap_time_features:
+    enabled: true
+    # Specific params
+    include_practice_data: true
+    include_tyre_data: true
+  delta_rank_features:
+    enabled: true
+    # Specific params
+    include_start_performance: true
+  h2h_features:
+    enabled: true
+    elo_initial_rating: 1500
+    elo_k_factor: 32
+  text_features:
+    enabled: false # Optional
+    model_name: "distilbert-base-uncased-finetuned-sst-2-english" # Example HuggingFace model
+  expert_input_features:
+    enabled: true
+
+domain_knowledge:
+  # Flags or scores that can be incorporated as features
+  unlikely_to_win_points_drivers: [] # Example: ["DriverX", "DriverY"]
+  team_favoritism_mapping: {} # Example: {"TeamA": "DriverA1"}
+
+models:
+  lap_time_model:
+    type: "xgboost" # or "neural_network"
+    model_path: "trained_models/lap_time_xgb.json"
+    hyperparameters: # For training
+      objective: "reg:squarederror"
+      n_estimators: 100
+      learning_rate: 0.1
+      max_depth: 6
+      subsample: 0.8
+      colsample_bytree: 0.8
+    features_to_use: ["grid_pos", "k_race_avg_pace_hist", "track_historical_avg_driver", "weather_rain_prob", "tyre_compound_soft_dummy"] # Example list
+  
+  delta_model:
+    type: "xgboost"
+    model_path: "trained_models/delta_xgb.json"
+    hyperparameters:
+      objective: "reg:squarederror"
+      n_estimators: 100
+      learning_rate: 0.1
+      max_depth: 6
+      subsample: 0.8
+      colsample_bytree: 0.8
+    features_to_use: ["qualifying_pos", "qualifying_gap_to_pole", "driver_consistency_variance", "team_recent_performance"]
+  
+  h2h_model:
+    type: "elo" # or "bradley_terry"
+    model_path: "trained_models/elo_ratings.pkl" # Or path to BT model
+    # No specific hyperparameters here if Elo is updated iteratively
+    features_to_use: ["driver_form_rating", "team_car_performance_score", "historical_h2h_track_wins"]
+  
+  text_model: # Optional
+    type: "sentiment_transformer"
+    model_path: "trained_models/text_sentiment_model.pt" # Or use pre-trained from HuggingFace directly
+    features_to_use: ["driver_news_sentiment_score", "team_buzz_score"]
+
+ensemble:
+  method: "weighted_average" # or "learning_to_rank" or "borda_count"
+  weights: # For weighted_average
+    lap_time_rank: 0.35
+    delta_rank: 0.25
+    h2h_rank: 0.20
+    text_rank: 0.0 # Disabled if text_model is off
+    expert_rank: 0.20
+  ltr_model_path: "trained_models/ltr_lightgbm.txt" # For learning_to_rank
+  ltr_params: # For training LTR
+    objective: "lambdarank"
+    metric: "ndcg"
+    learning_rate: 0.05
+    num_leaves: 31
+    n_estimators: 100
+
+evaluation:
+  metrics: ["spearman_rank_correlation", "kendall_tau", "ndcg_at_k", "rmse_position"]
+  ndcg_k: 10 
