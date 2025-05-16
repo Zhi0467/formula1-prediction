@@ -66,8 +66,8 @@ class F1DataPreprocessor:
         # Step 3: Generate core features
         features_df = compute_core_features(race_data, historical_data, self.config)
         
-        # Step 4: Final preprocessing for model input
-        # model_input_df = self._prepare_model_input(features_df)
+        # Step 4: Final cleanup to handle any remaining issues
+        features_df = self._final_data_cleanup(features_df)
         
         return features_df
     
@@ -126,7 +126,7 @@ class F1DataPreprocessor:
                               season: Union[int, str], 
                               race: Union[int, str]) -> Dict[str, pd.DataFrame]:
         """
-        Fetch historical data for feature engineering.
+        Fetch historical data for feature engineering, optimized for API rate limits.
         
         Args:
             season: Current F1 season (year)
@@ -140,68 +140,127 @@ class F1DataPreprocessor:
         # Determine years to fetch based on lookback configuration
         current_year = int(season)
         lookback_years = list(range(current_year - self.lookback_years, current_year + 1))
+        max_races_per_year = 5  # Limit number of races to fetch per year to manage API calls
+        
+        print(f"\n--- DEBUG: Fetching historical data (optimized) ---")
+        print(f"Current race: {season} Round {race}")
+        print(f"Lookback years: {lookback_years}, max {max_races_per_year} races per year")
         
         # Collect race results from previous seasons and races
         all_race_results = []
         
-        for year in lookback_years:
-            if year < current_year:
-                # For previous years, get all races
-                race_results_df = self.client.get_race_results(year)
-                all_race_results.append(race_results_df)
-            else:
-                # For current year, get only races before the current one
+        # Process years in reverse chronological order (most recent first)
+        for year in reversed(lookback_years):
+            if year == current_year:
+                # For current year, get individual races before the current one
                 if int(race) > 1:
-                    for r in range(1, int(race)):
+                    # Fetch races in reverse order (most recent first)
+                    races_to_fetch = range(int(race)-1, max(0, int(race)-max_races_per_year-1), -1)
+                    for r in races_to_fetch:
+                        print(f"Fetching race {r} from {year} (current year)")
                         race_result_df = self.client.get_race_results(year, r)
-                        all_race_results.append(race_result_df)
+                        if not race_result_df.empty:
+                            # Convert race_date to datetime
+                            if 'race_date' in race_result_df.columns:
+                                race_result_df['race_date'] = pd.to_datetime(race_result_df['race_date'])
+                            all_race_results.append(race_result_df)
+                            print(f"  Found {len(race_result_df)} results for {year} race {r}")
+            else:
+                print(f"Fetching most recent races from {year}")
+                last_race_df = self.client.get_race_results(year, "last")
+                
+                if not last_race_df.empty:
+                    # Get the last round number
+                    if 'round' in last_race_df.columns:
+                        # Check if any valid round values exist
+                        if not last_race_df['round'].isnull().all():
+                            last_round = int(last_race_df['round'].iloc[0])
+                            print(f"  Last round for {year} was {last_round}")
+                            
+                            # Now fetch specific races, starting from the last round
+                            races_to_fetch = range(last_round, max(0, last_round-max_races_per_year), -1)
+                            for r in races_to_fetch:
+                                print(f"  Fetching race {r} from {year}")
+                                race_result_df = self.client.get_race_results(year, r)
+                                if not race_result_df.empty:
+                                    if 'race_date' in race_result_df.columns:
+                                        race_result_df['race_date'] = pd.to_datetime(race_result_df['race_date'])
+                                    all_race_results.append(race_result_df)
+                                    print(f"    Found {len(race_result_df)} results")
+                        else:
+                            print(f"  No valid round numbers found in last_race_df for {year}")
+                    else:
+                        print(f"  'round' column not found in last_race_df for {year}")
+                else:
+                    # If we can't determine the last race, try fetching a few specific late-season races
+                    # These are typically the last races in most F1 seasons
+                    print("The Last round from the previous year is not fetched")
+                    potential_last_races = [22, 21, 20, 19, 18]
+                    races_fetched = 0
+                    
+                    for r in potential_last_races:
+                        if races_fetched >= max_races_per_year:
+                            break
+                            
+                        print(f"  Trying race {r} from {year}")
+                        race_result_df = self.client.get_race_results(year, r)
+                        if not race_result_df.empty:
+                            if 'race_date' in race_result_df.columns:
+                                race_result_df['race_date'] = pd.to_datetime(race_result_df['race_date'])
+                            all_race_results.append(race_result_df)
+                            races_fetched += 1
+                            print(f"    Found {len(race_result_df)} results")
         
         # Combine all race results
         if all_race_results:
             combined_race_results = pd.concat(all_race_results, ignore_index=True)
+            print(f"Combined race results: {len(combined_race_results)} rows")
+            
+            # Ensure correct datetime format and sort by date
+            if 'race_date' in combined_race_results.columns:
+                if not pd.api.types.is_datetime64_any_dtype(combined_race_results['race_date']):
+                    combined_race_results['race_date'] = pd.to_datetime(combined_race_results['race_date'])
+                
+                date_range = f"{combined_race_results['race_date'].min()} to {combined_race_results['race_date'].max()}"
+                print(f"Date range: {date_range}")
+                
+                # Sort by date ascending (oldest to newest)
+                combined_race_results = combined_race_results.sort_values('race_date')
+                
+                # Print unique race dates for verification
+                unique_dates = combined_race_results['race_date'].unique()
+                print(f"Unique race dates ({len(unique_dates)}): {sorted(unique_dates)}")
+            
             historical_data['race_results'] = combined_race_results
         
-        # Collect qualifying results
-        all_qualifying_results = []
+        # Fetch circuit-specific historical data for track performance features
+        # First we need to get the current circuit_id from race information
+        current_circuit_id = None
         
-        for year in lookback_years:
-            if year < current_year:
-                # For previous years, get all qualifying sessions
-                qualifying_results_df = self.client.get_qualifying_results(year)
-                all_qualifying_results.append(qualifying_results_df)
-            else:
-                # For current year, get only qualifying sessions before the current race
-                if int(race) > 1:
-                    for r in range(1, int(race)):
-                        qualifying_result_df = self.client.get_qualifying_results(year, r)
-                        all_qualifying_results.append(qualifying_result_df)
+        # Try to get circuit_id from qualifying data first
+        qualifying_df = self.client.get_qualifying_results(season, race)
+        if not qualifying_df.empty and 'circuit_name' in qualifying_df.columns:
+            circuit_name = qualifying_df['circuit_name'].iloc[0]
+            
+            # Get circuit ID from circuit information
+            circuits_df = self.client.get_circuits(season)
+            if not circuits_df.empty:
+                circuit_df = circuits_df[circuits_df['circuit_name'] == circuit_name]
+                if not circuit_df.empty and 'circuit_id' in circuit_df.columns:
+                    current_circuit_id = circuit_df['circuit_id'].iloc[0]
+                    print(f"Found circuit_id for current race: {current_circuit_id}")
         
-        # Combine all qualifying results
-        if all_qualifying_results:
-            combined_qualifying_results = pd.concat(all_qualifying_results, ignore_index=True)
-            historical_data['qualifying_results'] = combined_qualifying_results
-        
-        # Get most recent driver standings (from the previous race in current season)
-        if int(race) > 1:
-            driver_standings_df = self.client.get_driver_standings(season, int(race) - 1)
-            if not driver_standings_df.empty:
-                historical_data['driver_standings'] = driver_standings_df
-        else:
-            # If it's the first race, get the final standings from the previous season
-            driver_standings_df = self.client.get_driver_standings(current_year - 1)
-            if not driver_standings_df.empty:
-                historical_data['driver_standings'] = driver_standings_df
-        
-        # Get most recent constructor standings
-        if int(race) > 1:
-            constructor_standings_df = self.client.get_constructor_standings(season, int(race) - 1)
-            if not constructor_standings_df.empty:
-                historical_data['constructor_standings'] = constructor_standings_df
-        else:
-            # If it's the first race, get the final standings from the previous season
-            constructor_standings_df = self.client.get_constructor_standings(current_year - 1)
-            if not constructor_standings_df.empty:
-                historical_data['constructor_standings'] = constructor_standings_df
+        # If we found a circuit_id, fetch historical results for this specific track
+        if current_circuit_id:
+            print(f"Fetching historical results for circuit: {current_circuit_id}")
+            all_circuit_results = []
+            for year in reversed(lookback_years):
+                track_results_df = self.client.get_circuit_results(season= year, circuit_id = current_circuit_id)
+                all_circuit_results.append(track_results_df)
+                if not track_results_df.empty:
+                    print(f"Found {len(track_results_df)} historical results for {current_circuit_id} at year {year}")
+            all_circuit_results_pd = pd.concat(all_circuit_results, ignore_index=True)
+            historical_data['track_results'] = all_circuit_results_pd
         
         return historical_data
     
@@ -219,11 +278,44 @@ class F1DataPreprocessor:
         
         for key, df in race_data.items():
             if not df.empty:
+                # Convert qualifying times to seconds first if it's qualifying data
+                if key == 'qualifying':
+                    # Convert qualifying time strings to seconds
+                    for col in ['Q1', 'Q2', 'Q3']:
+                        if col in df.columns:
+                            df[col] = df[col].apply(self._convert_time_to_seconds)
+                
                 # Apply standard preprocessing
                 preprocessed_df = preprocess_data(df, self.config)
                 preprocessed_data[key] = preprocessed_df
         
         return preprocessed_data
+    
+    def _convert_time_to_seconds(self, time_str):
+        """
+        Convert F1 time format (1:30.123) to seconds.
+        
+        Args:
+            time_str: Time string to convert
+            
+        Returns:
+            Seconds as float or NaN if invalid
+        """
+        if pd.isna(time_str) or not isinstance(time_str, str) or time_str.strip() == '':
+            return np.nan
+        
+        try:
+            if ':' in time_str:
+                parts = time_str.split(':')
+                if len(parts) == 2:  # MM:SS.sss
+                    minutes, seconds = parts
+                    return float(minutes) * 60 + float(seconds)
+                else:
+                    return np.nan
+            else:
+                return float(time_str)
+        except (ValueError, TypeError):
+            return np.nan
     
     def _preprocess_historical_data(self, historical_data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
         """
@@ -324,6 +416,55 @@ class F1DataPreprocessor:
         }
         
         return pd.DataFrame([weather_data])
+
+    def _final_data_cleanup(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Perform final cleanup operations on the features DataFrame.
+        
+        Args:
+            features_df: Features DataFrame to clean
+            
+        Returns:
+            Cleaned features DataFrame
+        """
+        # Create a copy to avoid modifying the original
+        cleaned_df = features_df.copy()
+        
+        # Fix qualifying times - ensure eliminated drivers have NaN for Q2/Q3
+        if 'qualifying_time_q1' in cleaned_df.columns:
+            # Drivers eliminated in Q1 (positions 16-20) should have NaN in Q2/Q3
+            q1_eliminated = cleaned_df['grid_position'] >= 16
+            if 'qualifying_time_q2' in cleaned_df.columns:
+                cleaned_df.loc[q1_eliminated, 'qualifying_time_q2'] = np.nan
+            if 'qualifying_time_q3' in cleaned_df.columns:
+                cleaned_df.loc[q1_eliminated, 'qualifying_time_q3'] = np.nan
+            
+            # Drivers eliminated in Q2 (positions 11-15) should have NaN in Q3
+            q2_eliminated = (cleaned_df['grid_position'] >= 11) & (cleaned_df['grid_position'] <= 15)
+            if 'qualifying_time_q3' in cleaned_df.columns:
+                cleaned_df.loc[q2_eliminated, 'qualifying_time_q3'] = np.nan
+            
+            # Only drivers in Q3 should have a gap_to_pole_seconds
+            if 'gap_to_pole_seconds' in cleaned_df.columns:
+                q3_participants = cleaned_df['grid_position'] <= 10
+                cleaned_df.loc[~q3_participants, 'gap_to_pole_seconds'] = np.nan
+        
+        # Feature engineering - fill in missing data for rookies
+        if 'championship_position' in cleaned_df.columns:
+            # For rookies, assume they're at the back of the grid in their first race
+            rookie_mask = cleaned_df['championship_position'].isna()
+            # Set worst possible values for championship metrics
+            max_position = cleaned_df['championship_position'].max()
+            if pd.notna(max_position):
+                cleaned_df.loc[rookie_mask, 'championship_position'] = max_position + 1
+                cleaned_df.loc[rookie_mask, 'championship_points'] = 0
+                cleaned_df.loc[rookie_mask, 'season_wins'] = 0
+        
+        # Add debugging info
+        print(f"Data shape after cleanup: {cleaned_df.shape}")
+        print(f"Columns with all NaN values: {cleaned_df.columns[cleaned_df.isna().all()].tolist()}")
+        
+        return cleaned_df
 
 
 # Example usage:

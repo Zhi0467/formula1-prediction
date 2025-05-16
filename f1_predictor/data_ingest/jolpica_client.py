@@ -98,6 +98,7 @@ class JolpicaClient:
                 
                 results.append({
                     'season': season,
+                    'round': race_entry.get('round', ''),  # Add round number from race data
                     'race_name': race_name,
                     'circuit_id': circuit_id, # Added circuit_id
                     'circuit_name': circuit_name,
@@ -346,4 +347,69 @@ class JolpicaClient:
                 'country': location['country']
             })
         
-        return pd.DataFrame(circuits) 
+        return pd.DataFrame(circuits)
+    
+    def get_circuit_results(self, season: Union[int, str], circuit_id: str) -> pd.DataFrame:
+        """
+        Get historical race results for a specific circuit.
+        
+        Args:
+            circuit_id: Circuit identifier (e.g., 'monza', 'spa', 'monaco')
+            limit: Maximum number of results to return
+            
+        Returns:
+            DataFrame with historical race results for the specified circuit.
+        """
+        url = f"{self.base_url}/{season}/circuits/{circuit_id}/results.json"
+        
+        data = self._make_request(url)
+        races_data = data.get('MRData', {}).get('RaceTable', {}).get('Races', [])
+        
+        if not races_data:
+            return pd.DataFrame()
+        
+        results = []
+        for race_entry in races_data:
+            race_name = race_entry.get('raceName')
+            season = race_entry.get('season', '')
+            circuit_info = race_entry.get('Circuit', {})
+            circuit_id = circuit_info.get('circuitId')
+            circuit_name = circuit_info.get('circuitName')
+            race_date = race_entry.get('date')
+            
+            for result in race_entry.get('Results', []):
+                driver_data = result.get('Driver', {})
+                constructor_data = result.get('Constructor', {})
+                
+                grid_pos = int(result.get('grid', 0))
+                
+                finish_time_info = result.get('Time', {})
+                if finish_time_info and 'time' in finish_time_info:
+                    finish_time = finish_time_info['time']
+                    status = "Finished"
+                else:
+                    finish_time = None
+                    status = result.get('status', "Unknown")
+                
+                results.append({
+                    'season': season,
+                    'round': race_entry.get('round', ''),
+                    'race_name': race_name,
+                    'circuit_id': circuit_id,
+                    'circuit_name': circuit_name,
+                    'race_date': race_date,
+                    'driver_id': driver_data.get('driverId'),
+                    'driver_code': driver_data.get('code', driver_data.get('driverId', '')[:3].upper()),
+                    'driver_number': driver_data.get('permanentNumber', ''),
+                    'driver_name': f"{driver_data.get('givenName', '')} {driver_data.get('familyName', '')}".strip(),
+                    'team_id': constructor_data.get('constructorId'),
+                    'team_name': constructor_data.get('name'),
+                    'position': int(result.get('position', 0)),
+                    'grid_position': grid_pos,
+                    'points': float(result.get('points', 0.0)),
+                    'laps': int(result.get('laps', 0)),
+                    'finish_time': finish_time,
+                    'status': status
+                })
+        
+        return pd.DataFrame(results) 

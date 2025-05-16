@@ -1,0 +1,21 @@
+,season,round,race_name,circuit_id,circuit_name,race_date,driver_id,driver_code,driver_number,driver_name,team_id,team_name,position,grid_position,points,laps,finish_time,status
+0,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,max_verstappen,VER,33,Max Verstappen,red_bull,Red Bull,1,1,25.0,57,1:33:56.736,Finished
+1,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,perez,PER,11,Sergio Pérez,red_bull,Red Bull,2,2,18.0,57,+11.987,Finished
+2,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,alonso,ALO,14,Fernando Alonso,aston_martin,Aston Martin,3,5,15.0,57,+38.637,Finished
+3,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,sainz,SAI,55,Carlos Sainz,ferrari,Ferrari,4,4,12.0,57,+48.052,Finished
+4,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,hamilton,HAM,44,Lewis Hamilton,mercedes,Mercedes,5,7,10.0,57,+50.977,Finished
+5,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,stroll,STR,18,Lance Stroll,aston_martin,Aston Martin,6,8,8.0,57,+54.502,Finished
+6,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,russell,RUS,63,George Russell,mercedes,Mercedes,7,6,6.0,57,+55.873,Finished
+7,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,bottas,BOT,77,Valtteri Bottas,alfa,Alfa Romeo,8,12,4.0,57,+1:12.647,Finished
+8,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,gasly,GAS,10,Pierre Gasly,alpine,Alpine F1 Team,9,20,2.0,57,+1:13.753,Finished
+9,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,albon,ALB,23,Alexander Albon,williams,Williams,10,15,1.0,57,+1:29.774,Finished
+10,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,tsunoda,TSU,22,Yuki Tsunoda,alphatauri,AlphaTauri,11,14,0.0,57,+1:30.870,Finished
+11,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,sargeant,SAR,2,Logan Sargeant,williams,Williams,12,16,0.0,56,+1.136,Finished
+12,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,kevin_magnussen,MAG,20,Kevin Magnussen,haas,Haas F1 Team,13,17,0.0,56,+16.757,Finished
+13,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,de_vries,DEV,21,Nyck de Vries,alphatauri,AlphaTauri,14,19,0.0,56,+22.523,Finished
+14,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,hulkenberg,HUL,27,Nico Hülkenberg,haas,Haas F1 Team,15,10,0.0,56,+38.911,Finished
+15,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,zhou,ZHO,24,Guanyu Zhou,alfa,Alfa Romeo,16,13,0.0,56,+39.649,Finished
+16,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,norris,NOR,4,Lando Norris,mclaren,McLaren,17,11,0.0,55,+6.636,Finished
+17,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,ocon,OCO,31,Esteban Ocon,alpine,Alpine F1 Team,18,9,0.0,41,,Retired
+18,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,leclerc,LEC,16,Charles Leclerc,ferrari,Ferrari,19,3,0.0,39,,Retired
+19,2023,1,Bahrain Grand Prix,bahrain,Bahrain International Circuit,2023-03-05,piastri,PIA,81,Oscar Piastri,mclaren,McLaren,20,18,0.0,13,,Retired

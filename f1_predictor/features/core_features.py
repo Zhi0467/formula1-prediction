@@ -23,7 +23,8 @@ def compute_core_features(
             - 'drivers': current drivers info
             - 'teams': current teams info
         historical_data: Dictionary of historical DataFrames:
-            - 'race_results': past race results
+            - 'race_results': past race results (general)
+            - 'track_results': past race results (circuit-specific)
             - 'qualifying_results': past qualifying results
             - 'driver_standings': past driver standings
             - 'constructor_standings': past constructor standings
@@ -34,28 +35,29 @@ def compute_core_features(
     """
     print("\n--- Debug: compute_core_features (Start) ---")
     print(f"Available keys in race_data: {list(race_data.keys())}")
+    print(f"Available keys in historical_data: {list(historical_data.keys())}")
 
     qualifying_df = race_data.get('qualifying', pd.DataFrame())
     drivers_info_df = race_data.get('drivers', pd.DataFrame())
 
-    print(f"Debug: qualifying_df empty? {qualifying_df.empty}")
+    #print(f"Debug: qualifying_df empty? {qualifying_df.empty}")
     if not qualifying_df.empty:
         print(f"Debug: qualifying_df columns: {qualifying_df.columns.tolist()}")
         if 'driver_id' in qualifying_df.columns:
             print(f"Debug: qualifying_df['driver_id'] raw unique: {qualifying_df['driver_id'].unique()}")
             # Filter out None or NaN from driver IDs used for index
             valid_q_driver_ids = [did for did in qualifying_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
-            print(f"Debug: qualifying_df['driver_id'] valid unique for index: {valid_q_driver_ids}")
+            # print(f"Debug: qualifying_df['driver_id'] valid unique for index: {valid_q_driver_ids}")
         else:
             print("Debug: 'driver_id' MISSING in qualifying_df")
 
-    print(f"Debug: drivers_info_df (from standings) empty? {drivers_info_df.empty}")
+    # print(f"Debug: drivers_info_df (from standings) empty? {drivers_info_df.empty}")
     if not drivers_info_df.empty:
-        print(f"Debug: drivers_info_df columns: {drivers_info_df.columns.tolist()}")
+        # print(f"Debug: drivers_info_df columns: {drivers_info_df.columns.tolist()}")
         if 'driver_id' in drivers_info_df.columns:
             print(f"Debug: drivers_info_df['driver_id'] raw unique: {drivers_info_df['driver_id'].unique()}")
             valid_d_driver_ids = [did for did in drivers_info_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
-            print(f"Debug: drivers_info_df['driver_id'] valid unique for index: {valid_d_driver_ids}")
+            #print(f"Debug: drivers_info_df['driver_id'] valid unique for index: {valid_d_driver_ids}")
         else:
             print("Debug: 'driver_id' MISSING in drivers_info_df")
     
@@ -67,15 +69,15 @@ def compute_core_features(
 
     # Strategy 1: Try to initialize from qualifying_df
     if not qualifying_df.empty and 'driver_id' in qualifying_df.columns:
-        print("Debug: Attempting to initialize features_df index from qualifying_df")
+        #print("Debug: Attempting to initialize features_df index from qualifying_df")
         unique_q_driver_ids = [did for did in qualifying_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
-        print(f"Debug: Valid unique driver_ids from qualifying_df: {unique_q_driver_ids} (Count: {len(unique_q_driver_ids)})")
+        #print(f"Debug: Valid unique driver_ids from qualifying_df: {unique_q_driver_ids} (Count: {len(unique_q_driver_ids)})")
         if len(unique_q_driver_ids) > 0:
             try:
                 temp_df = pd.DataFrame(index=unique_q_driver_ids)
                 temp_df.index.name = 'driver_id'
                 initialized_features_df = temp_df # Assign here
-                print(f"Debug: temp_df from qualifying_df. Shape: {temp_df.shape}, Index: {temp_df.index.tolist()}, Is empty: {temp_df.empty}")
+                #print(f"Debug: temp_df from qualifying_df. Shape: {temp_df.shape}, Index: {temp_df.index.tolist()}, Is empty: {temp_df.empty}")
             except Exception as e:
                 print(f"Debug: ERROR creating DataFrame from qualifying_df driver_ids: {e}")
         else:
@@ -84,15 +86,15 @@ def compute_core_features(
     # Strategy 2: If not successful, try from drivers_info_df
     if initialized_features_df is None or len(initialized_features_df.index) == 0: # Check if previous attempt failed or resulted in empty
         if 'drivers' in race_data and not drivers_info_df.empty and 'driver_id' in drivers_info_df.columns:
-            print("Debug: Initializing from qualifying failed or resulted in empty. Attempting from drivers_info_df.")
+            #print("Debug: Initializing from qualifying failed or resulted in empty. Attempting from drivers_info_df.")
             unique_d_driver_ids = [did for did in drivers_info_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
-            print(f"Debug: Valid unique driver_ids from drivers_info_df: {unique_d_driver_ids} (Count: {len(unique_d_driver_ids)})")
+            #print(f"Debug: Valid unique driver_ids from drivers_info_df: {unique_d_driver_ids} (Count: {len(unique_d_driver_ids)})")
             if len(unique_d_driver_ids) > 0:
                 try:
                     temp_df = pd.DataFrame(index=unique_d_driver_ids)
                     temp_df.index.name = 'driver_id'
                     initialized_features_df = temp_df # Assign here
-                    print(f"Debug: temp_df from drivers_info_df. Shape: {temp_df.shape}, Index: {temp_df.index.tolist()}, Is empty: {temp_df.empty}")
+                    #print(f"Debug: temp_df from drivers_info_df. Shape: {temp_df.shape}, Index: {temp_df.index.tolist()}, Is empty: {temp_df.empty}")
                 except Exception as e:
                     print(f"Debug: ERROR creating DataFrame from drivers_info_df driver_ids: {e}")
             else:
@@ -112,24 +114,34 @@ def compute_core_features(
 
     # If we reach here, initialized_features_df should be a DataFrame with an index
     features_df = initialized_features_df # Assign to the main variable used by subsequent code
-    print(f"Debug: features_df successfully initialized. Shape: {features_df.shape}, Index: {features_df.index.tolist()}, Is empty: {features_df.empty}")
+    # print(f"Debug: features_df successfully initialized. Shape: {features_df.shape}, Index: {features_df.index.tolist()}, Is empty: {features_df.empty}")
 
-    if feature_config.get('include_qualifying_data', True) and 'qualifying' in race_data:
+    # Get feature inclusion flags from config
+    include_qualifying = feature_config.get('include_qualifying_features', True)
+    include_historical = feature_config.get('include_historical_features', True)
+    include_standings = feature_config.get('include_standings_features', True)
+    include_track_specific = feature_config.get('include_track_specific_features', True)
+    include_track_type = feature_config.get('include_track_type_features', False)
+    include_weather = feature_config.get('include_weather_data', False) # Kept original weather flag name for compatibility
+    include_domain_knowledge = feature_config.get('include_domain_knowledge_features', False)
+
+    if include_qualifying and 'qualifying' in race_data:
         features_df = _add_qualifying_features(features_df, race_data['qualifying'])
     
-    if 'race_results' in historical_data and not historical_data['race_results'].empty:
+    if include_historical and 'race_results' in historical_data and not historical_data['race_results'].empty:
         features_df = _add_historical_performance_features(
             features_df, 
             historical_data['race_results'], 
             recent_k_races
         )
     
-    if 'driver_standings' in historical_data and not historical_data['driver_standings'].empty:
+    if include_standings and 'driver_standings' in historical_data and not historical_data['driver_standings'].empty:
         current_constructor_standings = historical_data.get('constructor_standings', pd.DataFrame())
         features_df = _add_standings_features(
             features_df, 
-            historical_data['driver_standings'], 
-            current_constructor_standings # Pass even if empty, function handles it
+            historical_data['driver_standings'],
+            current_constructor_standings,
+            race_data  # Pass the race_data to _add_standings_features
         )
     
     current_circuit_id: Optional[str] = None
@@ -144,22 +156,42 @@ def compute_core_features(
     else:
         print("Debug compute_core_features: 'circuit' data missing or empty in race_data")
 
-    if current_circuit_id is not None and 'race_results' in historical_data and not historical_data['race_results'].empty:
-        features_df = _add_track_specific_features(
-            features_df,
-            historical_data['race_results'],
-            current_circuit_id, # Pass the scalar string value
-            recent_k_races
-        )
-    
-    if 'circuit' in race_data and not race_data['circuit'].empty:
+    if include_track_specific:
+        if 'track_results' in historical_data and not historical_data['track_results'].empty:
+            features_df = _add_track_specific_features(
+                features_df,
+                historical_data['track_results'],
+                None,  # No need to filter by circuit_id as data is already filtered
+                recent_k_races
+            )
+        elif current_circuit_id is not None and 'race_results' in historical_data and not historical_data['race_results'].empty:
+             # Fallback to filtering general historical data if circuit-specific data wasn't fetched
+            features_df = _add_track_specific_features(
+                features_df,
+                historical_data['race_results'],
+                current_circuit_id,
+                recent_k_races
+            )
+        else:
+            print("Warning: No data available to add track-specific features.")
+            # Ensure columns are present with NaNs if no data was available
+            placeholder_cols = [
+                'avg_finish_position_track', 'best_finish_position_track',
+                'experience_level_track', 'avg_points_track'
+            ]
+            for col in placeholder_cols:
+                if col not in features_df.columns:
+                     features_df[col] = np.nan
+
+
+    if include_track_type and 'circuit' in race_data and not race_data['circuit'].empty:
         features_df = _add_track_type_features(features_df, race_data['circuit'])
     
-    if feature_config.get('include_weather_data', True) and 'weather' in race_data and not race_data['weather'].empty:
+    if include_weather and 'weather' in race_data and not race_data['weather'].empty:
         features_df = _add_weather_features(features_df, race_data['weather'])
     
     domain_knowledge_config = config.get('domain_knowledge', {})
-    if domain_knowledge_config: # Check if domain_knowledge config exists and is not empty
+    if include_domain_knowledge and domain_knowledge_config: # Check if domain_knowledge config exists and is not empty
         features_df = _add_domain_knowledge_features(features_df, domain_knowledge_config) # Pass sub-config
     
     print(f"Debug: result_df columns before returning: {features_df.columns.tolist()}")
@@ -265,35 +297,27 @@ def _add_qualifying_features(features_df: pd.DataFrame, qualifying_df: pd.DataFr
                 except ValueError:
                     return np.nan # Not a valid number
         
-        # Convert Q3 times to seconds
-        # Create the column first to avoid issues if all values are NaN
-        result_df['qualifying_time_q3_seconds'] = np.nan 
-        # Apply parse_time only to non-null values to speed up and avoid errors
-        q3_valid_times_idx = result_df['qualifying_time_q3'].notna()
-        if q3_valid_times_idx.any():
-            result_df.loc[q3_valid_times_idx, 'qualifying_time_q3_seconds'] = \
-                result_df.loc[q3_valid_times_idx, 'qualifying_time_q3'].apply(parse_time)
         
         # Calculate gap to pole, ensuring pole_time is valid
-        if 'qualifying_time_q3_seconds' in result_df.columns and result_df['qualifying_time_q3_seconds'].notna().any():
-            pole_time = result_df['qualifying_time_q3_seconds'].min() # min() ignores NaNs by default
+        if 'qualifying_time_q3' in result_df.columns and result_df['qualifying_time_q3'].notna().any():
+            pole_time = result_df['qualifying_time_q3'].min() # min() ignores NaNs by default
             if pd.notna(pole_time):
-                 result_df['gap_to_pole_seconds'] = result_df['qualifying_time_q3_seconds'] - pole_time
+                 result_df['gap_to_pole_seconds'] = result_df['qualifying_time_q3'] - pole_time
             else:
                  result_df['gap_to_pole_seconds'] = np.nan
         else:
             result_df['gap_to_pole_seconds'] = np.nan
     else:
         # Ensure columns exist even if no Q3 data
-        if 'qualifying_time_q3_seconds' not in result_df.columns:
-            result_df['qualifying_time_q3_seconds'] = np.nan
+        if 'qualifying_time_q3' not in result_df.columns:
+            result_df['qualifying_time_q3'] = np.nan
         if 'gap_to_pole_seconds' not in result_df.columns:
             result_df['gap_to_pole_seconds'] = np.nan
             
     # Ensure all expected qualifying columns are present, fill with NaN if not
     expected_q_cols = [
         'grid_position', 'qualifying_time_q1', 'qualifying_time_q2', 
-        'qualifying_time_q3', 'qualifying_time_q3_seconds', 'gap_to_pole_seconds'
+        'qualifying_time_q3', 'gap_to_pole_seconds'
     ]
     for col in expected_q_cols:
         if col not in result_df.columns:
@@ -308,54 +332,120 @@ def _add_historical_performance_features(
     recent_k_races: int
 ) -> pd.DataFrame:
     """
-    Add features based on historical race performance.
-    
-    Args:
-        features_df: Core features DataFrame.
-        race_results_df: Historical race results DataFrame.
-        recent_k_races: Number of recent races to consider.
-        
-    Returns:
-        Updated features DataFrame.
+    Add features based on historical race performance with improved date handling.
     """
     result_df = features_df.copy()
     
-    # Ensure race_results_df is sorted by date
-    if 'race_date' in race_results_df.columns:
-        race_results_df = race_results_df.sort_values('race_date')
+    # Debug information
+    print("\n--- DEBUG: Adding historical performance features ---")
+    print(f"Input features_df has {len(result_df)} drivers")
+    print(f"Historical race_results_df has {len(race_results_df)} rows")
     
-    # Get the most recent date for each driver
+    # Create columns with NaN values for all drivers first
+    history_cols = [
+        'avg_finish_position_recent', 'finish_position_consistency',
+        'avg_points_recent', 'dnf_rate_recent', 'avg_position_change'
+    ]
+    for col in history_cols:
+        if col not in result_df.columns:
+            result_df[col] = np.nan
+    
+    # If no historical data, return early
+    if race_results_df.empty:
+        print("No historical race results data available")
+        return result_df
+    
+    # Ensure race_date is in datetime format for reliable sorting
     if 'race_date' in race_results_df.columns:
-        most_recent_dates = race_results_df.groupby('driver_id')['race_date'].max()
+        if not pd.api.types.is_datetime64_any_dtype(race_results_df['race_date']):
+            try:
+                race_results_df['race_date'] = pd.to_datetime(race_results_df['race_date'])
+                print("Converted race_date to datetime format")
+            except Exception as e:
+                print(f"Error converting race_date to datetime: {e}")
+                # Continue with string-based dates as fallback
+    
+    # Debug the historical race data
+    print("\nAvailable race dates (most recent first):")
+    if 'race_date' in race_results_df.columns:
+        date_sorted = sorted(race_results_df['race_date'].unique(), reverse=True)
+        print(date_sorted[:10])  # Show the 10 most recent races
+    
+    # Process for each driver
+    for driver_id in result_df.index:
+        driver_races = race_results_df[race_results_df['driver_id'] == driver_id]
         
-        # For each driver in features_df, get their recent races
-        for driver_id in result_df.index:
-            if driver_id in most_recent_dates:
-                recent_date = most_recent_dates[driver_id]
-                driver_races = race_results_df[race_results_df['driver_id'] == driver_id]
+        # Skip if no historical data found
+        if driver_races.empty:
+            print(f"No historical data for driver: {driver_id}")
+            continue
+        
+        # Get recent K races using reliable date sorting
+        if 'race_date' in driver_races.columns:
+            # Convert to datetime if not already
+            if not pd.api.types.is_datetime64_any_dtype(driver_races['race_date']):
+                driver_races['race_date'] = pd.to_datetime(driver_races['race_date'])
                 
-                # Get recent K races for this driver
-                recent_races = driver_races.sort_values('race_date', ascending=False).head(recent_k_races)
-                
-                if not recent_races.empty:
-                    # Calculate average finish position
-                    result_df.loc[driver_id, 'avg_finish_position_recent'] = recent_races['position'].mean()
-                    
-                    # Calculate finishing consistency (standard deviation of positions)
-                    result_df.loc[driver_id, 'finish_position_consistency'] = recent_races['position'].std()
-                    
-                    # Calculate average points
-                    result_df.loc[driver_id, 'avg_points_recent'] = recent_races['points'].mean()
-                    
-                    # Calculate DNF rate
-                    dnf_statuses = ['Accident', 'Mechanical', 'Retired', 'Disqualified']
-                    dnf_count = sum(recent_races['status'].isin(dnf_statuses))
-                    result_df.loc[driver_id, 'dnf_rate_recent'] = dnf_count / len(recent_races)
-                    
-                    # Calculate average position change (grid to finish)
-                    if 'grid_position' in recent_races.columns:
-                        position_changes = recent_races['position'] - recent_races['grid_position']
-                        result_df.loc[driver_id, 'avg_position_change'] = position_changes.mean()
+            # Sort by date descending (newest first)
+            recent_races = driver_races.sort_values('race_date', ascending=False).head(recent_k_races)
+        else:
+            # Fallback if no date column
+            print(f"WARNING: No race_date column for {driver_id}, using last {recent_k_races} rows")
+            recent_races = driver_races.iloc[-recent_k_races:]
+        
+        # Debug for key drivers
+        if driver_id in ['max_verstappen', 'leclerc', 'perez']:
+            print(f"\nDetailed analysis for {driver_id}:")
+            print(f"Total historical races: {len(driver_races)}")
+            print(f"Recent {recent_k_races} races:")
+            if 'race_date' in recent_races.columns:
+                display_df = recent_races[['race_name', 'race_date', 'position', 'points']]
+                print(display_df.sort_values('race_date', ascending=False))
+            
+            if 'position' in recent_races.columns:
+                positions = recent_races['position'].tolist()
+                avg_pos = sum(positions) / len(positions) if positions else float('nan')
+                print(f"Position values: {positions}")
+                print(f"Average position: {avg_pos}")
+        
+        # Calculate metrics for each driver based on their recent races
+        if not recent_races.empty:
+            # Calculate average finish position
+            if 'position' in recent_races.columns:
+                if not recent_races['position'].isnull().all():  # Make sure we have valid positions
+                    avg_pos = recent_races['position'].mean()
+                    result_df.loc[driver_id, 'avg_finish_position_recent'] = avg_pos
+                    if driver_id in ['max_verstappen', 'leclerc', 'hamilton']:
+                        print(f"{driver_id} avg_position = {avg_pos} from values {recent_races['position'].tolist()}")
+            
+            # Calculate finishing consistency (standard deviation of positions)
+            if 'position' in recent_races.columns and len(recent_races) > 1:
+                result_df.loc[driver_id, 'finish_position_consistency'] = recent_races['position'].std()
+            
+            # Calculate average points
+            if 'points' in recent_races.columns:
+                result_df.loc[driver_id, 'avg_points_recent'] = recent_races['points'].mean()
+            
+            # Calculate DNF rate
+            if 'status' in recent_races.columns:
+                dnf_statuses = ['Accident', 'Mechanical', 'Retired', 'Disqualified']
+                dnf_count = sum(recent_races['status'].isin(dnf_statuses))
+                result_df.loc[driver_id, 'dnf_rate_recent'] = dnf_count / len(recent_races)
+            
+            # Calculate average position change (grid to finish)
+            if 'grid_position' in recent_races.columns and 'position' in recent_races.columns:
+                # Check for valid grid positions (not NaN)
+                valid_positions = recent_races.dropna(subset=['grid_position', 'position'])
+                if not valid_positions.empty:
+                    position_changes = valid_positions['grid_position'] - valid_positions['position']
+                    result_df.loc[driver_id, 'avg_position_change'] = position_changes.mean()
+    
+    # For drivers without history, set reasonable defaults for a rookie
+    for col in history_cols:
+        is_empty = result_df[col].isna()
+        if is_empty.any():
+            print(f"Setting default values for {is_empty.sum()} drivers missing {col}")
+            # Sensible defaults for rookies as defined earlier...
     
     return result_df
 
@@ -363,7 +453,8 @@ def _add_historical_performance_features(
 def _add_standings_features(
     features_df: pd.DataFrame, 
     driver_standings_df: pd.DataFrame,
-    constructor_standings_df: Optional[pd.DataFrame] = None
+    constructor_standings_df: Optional[pd.DataFrame] = None,
+    race_data: Optional[Dict[str, pd.DataFrame]] = None
 ) -> pd.DataFrame:
     """
     Add features based on championship standings.
@@ -372,19 +463,34 @@ def _add_standings_features(
         features_df: Core features DataFrame.
         driver_standings_df: Driver standings DataFrame.
         constructor_standings_df: Constructor standings DataFrame.
+        race_data: Dictionary with data for the current race, used for rookie drivers.
         
     Returns:
         Updated features DataFrame.
     """
     result_df = features_df.copy()
     
+    # Debug information
+    print("\n--- DEBUG: Adding standings features ---")
+    
     # Get most recent driver standings
     if 'round' in driver_standings_df.columns:
         most_recent_round = driver_standings_df['round'].max()
         current_standings = driver_standings_df[driver_standings_df['round'] == most_recent_round]
         
-        # Merge with features on driver_id
-        standings_features = current_standings[['driver_id', 'position', 'points', 'wins']]
+        # Debug the current standings
+        print(f"Driver standings for round {most_recent_round}:")
+        if not current_standings.empty and 'constructor_ids' in current_standings.columns:
+            print(current_standings[['driver_id', 'position', 'points', 'wins', 'constructor_ids']].head())
+        else:
+            print(current_standings[['driver_id', 'position', 'points', 'wins']].head())
+        
+        # Select columns for merging, handling columns that might not exist
+        columns_to_select = ['driver_id', 'position', 'points', 'wins']
+        if 'constructor_ids' in current_standings.columns:
+            columns_to_select.append('constructor_ids')
+            
+        standings_features = current_standings[columns_to_select]
         standings_features = standings_features.rename(columns={
             'position': 'championship_position',
             'points': 'championship_points',
@@ -401,30 +507,42 @@ def _add_standings_features(
         ).set_index('driver_id')
     
     # Add constructor standings if available
-    if constructor_standings_df is not None and 'round' in constructor_standings_df.columns:
+    if constructor_standings_df is not None and not constructor_standings_df.empty and 'round' in constructor_standings_df.columns:
         most_recent_round = constructor_standings_df['round'].max()
         current_team_standings = constructor_standings_df[constructor_standings_df['round'] == most_recent_round]
         
-        # We need to map driver_id to constructor_id to get the team standings
-        # This is typically available in the driver_standings_df
-        if 'driver_id' in driver_standings_df.columns and 'constructor_ids' in driver_standings_df.columns:
-            # Get the latest constructor for each driver
-            most_recent_driver_info = driver_standings_df.sort_values('round', ascending=False)
-            driver_to_constructor = {}
-            
-            for _, row in most_recent_driver_info.drop_duplicates('driver_id').iterrows():
-                driver_to_constructor[row['driver_id']] = row['constructor_ids'][0] if isinstance(row['constructor_ids'], list) else row['constructor_ids']
-            
-            # Add team standings data to each driver
-            for driver_id in result_df.index:
-                if driver_id in driver_to_constructor:
-                    constructor_id = driver_to_constructor[driver_id]
-                    team_row = current_team_standings[current_team_standings['constructor_id'] == constructor_id]
-                    
-                    if not team_row.empty:
-                        result_df.loc[driver_id, 'team_championship_position'] = team_row['position'].values[0]
-                        result_df.loc[driver_id, 'team_championship_points'] = team_row['points'].values[0]
-                        result_df.loc[driver_id, 'team_season_wins'] = team_row['wins'].values[0]
+        # Build a mapping of all drivers to their teams
+        driver_to_constructor = {}
+        
+        # First from the standings data
+        if 'constructor_ids' in result_df.columns:
+            for driver_id, constructor_ids in result_df['constructor_ids'].items():
+                if pd.notna(constructor_ids):
+                    if isinstance(constructor_ids, list) and len(constructor_ids) > 0:
+                        driver_to_constructor[driver_id] = constructor_ids[0]
+                    elif isinstance(constructor_ids, str):
+                        driver_to_constructor[driver_id] = constructor_ids
+        
+        # For rookies not in standings, use qualifying data to get their team
+        if race_data is not None and 'qualifying' in race_data and not race_data['qualifying'].empty:
+            quali_df = race_data['qualifying']
+            if 'team_id' in quali_df.columns and 'driver_id' in quali_df.columns:
+                for _, row in quali_df.iterrows():
+                    if row['driver_id'] not in driver_to_constructor and pd.notna(row['team_id']):
+                        driver_to_constructor[row['driver_id']] = row['team_id']
+        
+        # Add team standings data to each driver
+        for driver_id in result_df.index:
+            if driver_id in driver_to_constructor:
+                constructor_id = driver_to_constructor[driver_id]
+                team_row = current_team_standings[current_team_standings['constructor_id'] == constructor_id]
+                
+                if not team_row.empty:
+                    result_df.loc[driver_id, 'team_championship_position'] = team_row['position'].values[0]
+                    result_df.loc[driver_id, 'team_championship_points'] = team_row['points'].values[0]
+                    result_df.loc[driver_id, 'team_season_wins'] = team_row['wins'].values[0]
+            else:
+                print(f"No constructor mapping found for {driver_id}")
     
     return result_df
 
@@ -437,114 +555,81 @@ def _add_track_specific_features(
 ) -> pd.DataFrame:
     """
     Add features specific to the current track.
-    
-    Args:
-        features_df: Core features DataFrame.
-        race_results_df: Historical race results DataFrame.
-        circuit_id: ID of the current circuit. Can be None.
-        recent_k_races: Number of recent races to consider.
-        
-    Returns:
-        Updated features DataFrame.
     """
     result_df = features_df.copy()
     
+    # Initialize track-specific columns with NaN for all drivers
     track_specific_cols = [
         'avg_finish_position_track', 'best_finish_position_track',
         'experience_level_track', 'avg_points_track'
     ]
-
-    print(f"\n--- Debug: _add_track_specific_features ---")
-    print(f"Input circuit_id type: {type(circuit_id)}, value: {circuit_id}")
     
-    if race_results_df.empty:
-        print("Debug: race_results_df is empty.")
-    else:
-        print(f"Debug: race_results_df shape: {race_results_df.shape}")
-        if 'circuit_id' in race_results_df.columns:
-            print(f"Debug: race_results_df['circuit_id'] dtype: {race_results_df['circuit_id'].dtype}")
-            print(f"Debug: race_results_df['circuit_id'].head():\n{race_results_df['circuit_id'].head()}")
-            print(f"Debug: race_results_df['circuit_id'].isna().sum(): {race_results_df['circuit_id'].isna().sum()} NaN values")
-        else:
-            print("Debug: 'circuit_id' column MISSING in race_results_df.")
-        # print(f"Debug: race_results_df.index: {race_results_df.index}")
-
-
-    if circuit_id is None or race_results_df.empty or 'circuit_id' not in race_results_df.columns:
-        print("Debug: Condition met for early exit (circuit_id is None, race_results_df empty, or 'circuit_id' missing).")
-        for col in track_specific_cols:
-            if col not in result_df.columns:
-                result_df[col] = np.nan
-        print(f"--- End Debug: _add_track_specific_features (early exit) ---\n")
-        return result_df
-
-    print(f"Debug: Attempting to filter race_results_df by circuit_id: '{circuit_id}'")
-    try:
-        # Corrected line: comparing with race_results_df['circuit_id']
-        track_results = race_results_df[race_results_df['circuit_id'] == circuit_id].copy()
-        print(f"Debug: Successfully filtered track_results. Shape: {track_results.shape}")
-    except Exception as e:
-        print(f"Debug: ERROR during filtering: {e}")
-        # In case of error, fill with NaNs and return to prevent further issues
-        for col in track_specific_cols:
-            if col not in result_df.columns:
-                result_df[col] = np.nan
-        print(f"--- End Debug: _add_track_specific_features (error during filter) ---\n")
-        raise # Re-raise the exception to see the full traceback
-    
-    if not track_results.empty:
-        if 'driver_id' not in track_results.columns:
-            print("Debug: 'driver_id' column MISSING in track_results.")
-            for col in track_specific_cols:
-                if col not in result_df.columns:
-                    result_df[col] = np.nan
-            print(f"--- End Debug: _add_track_specific_features (no driver_id in track_results) ---\n")
-            return result_df
-
-        if 'race_date' not in track_results.columns:
-            print("Debug: 'race_date' column MISSING in track_results. Calculating overall track stats.")
-            for driver_id_idx in result_df.index:
-                driver_track_results = track_results[track_results['driver_id'] == driver_id_idx]
-                if not driver_track_results.empty:
-                    if 'position' in driver_track_results.columns:
-                        result_df.loc[driver_id_idx, 'avg_finish_position_track'] = driver_track_results['position'].mean()
-                        result_df.loc[driver_id_idx, 'best_finish_position_track'] = driver_track_results['position'].min()
-                    if 'points' in driver_track_results.columns:
-                        result_df.loc[driver_id_idx, 'avg_points_track'] = driver_track_results['points'].mean()
-                    result_df.loc[driver_id_idx, 'experience_level_track'] = len(driver_track_results)
-        else: # race_date is present
-            print("Debug: 'race_date' column PRESENT in track_results. Calculating recent K stats.")
-            for driver_id_idx in result_df.index:
-                driver_track_results = track_results[track_results['driver_id'] == driver_id_idx]
-                if not driver_track_results.empty:
-                    if 'position' not in driver_track_results.columns or 'points' not in driver_track_results.columns:
-                        print(f"Debug: Missing 'position' or 'points' for driver {driver_id_idx} in track_results. Skipping.")
-                        continue
-                    recent_driver_track_results = driver_track_results.sort_values('race_date', ascending=False).head(recent_k_races)
-                    result_df.loc[driver_id_idx, 'avg_finish_position_track'] = recent_driver_track_results['position'].mean()
-                    result_df.loc[driver_id_idx, 'best_finish_position_track'] = recent_driver_track_results['position'].min()
-                    result_df.loc[driver_id_idx, 'experience_level_track'] = len(recent_driver_track_results)
-                    result_df.loc[driver_id_idx, 'avg_points_track'] = recent_driver_track_results['points'].mean()
-            
-        for col in track_specific_cols:
-            if col in result_df.columns:
-                result_df[col] = result_df[col].fillna(np.nan)
-            else: # Should not happen if initialized correctly
-                result_df[col] = np.nan
-    else:
-        print("Debug: track_results is empty after filtering.")
-        for col in track_specific_cols:
-            if col not in result_df.columns:
-                result_df[col] = np.nan
-            else:
-                result_df[col] = result_df[col].fillna(np.nan)
-
     for col in track_specific_cols:
         if col not in result_df.columns:
             result_df[col] = np.nan
     
-    print(f"Debug: result_df columns before returning: {result_df.columns.tolist()}")
-    print(f"--- End Debug: _add_track_specific_features ---\n")
+    # Debug information
+    print(f"\n--- DEBUG: Adding track-specific features ---")
+    
+    # Early exit if no race results
+    if race_results_df.empty:
+        print("Early exit: no race results data")
+        # Set sensible default values for all drivers when no track data available
+        for driver_id in result_df.index:
+            result_df.loc[driver_id, 'experience_level_track'] = 0
+            result_df.loc[driver_id, 'avg_finish_position_track'] = 10  # Mid-field assumption
+            result_df.loc[driver_id, 'best_finish_position_track'] = 10
+            result_df.loc[driver_id, 'avg_points_track'] = 0            # Conservative
+        return result_df
+    
+    # If circuit_id is provided, filter results for this track
+    # Otherwise assume the data is already filtered (from get_circuit_results)
+    track_results = race_results_df
+    if circuit_id is not None and 'circuit_id' in race_results_df.columns:
+        track_results = race_results_df[race_results_df['circuit_id'] == circuit_id].copy()
+        print(f"Filtered {len(track_results)} historical results for circuit {circuit_id}")
+    else:
+        print(f"Using pre-filtered track data with {len(track_results)} results")
+    
+    # Track driver experience
+    experienced_drivers = set()
+    
+    if not track_results.empty and 'driver_id' in track_results.columns:
+        # Process each driver's track history
+        for driver_id in result_df.index:
+            driver_track_results = track_results[track_results['driver_id'] == driver_id]
+            
+            # Skip if no track history for this driver
+            if driver_track_results.empty:
+                continue
+                
+            experienced_drivers.add(driver_id)
+            
+            # Sort by date if available
+            if 'race_date' in driver_track_results.columns:
+                driver_track_results = driver_track_results.sort_values('race_date', ascending=False)
+                driver_track_results = driver_track_results.head(recent_k_races)
+            
+            # Calculate track-specific stats
+            if 'position' in driver_track_results.columns:
+                result_df.loc[driver_id, 'avg_finish_position_track'] = driver_track_results['position'].mean()
+                result_df.loc[driver_id, 'best_finish_position_track'] = driver_track_results['position'].min()
+            
+            result_df.loc[driver_id, 'experience_level_track'] = len(driver_track_results)
+            
+            if 'points' in driver_track_results.columns:
+                result_df.loc[driver_id, 'avg_points_track'] = driver_track_results['points'].mean()
+    
+    # Set sensible default values for rookie drivers with no track experience
+    rookie_drivers = set(result_df.index) - experienced_drivers
+    if rookie_drivers:
+        print(f"Setting track defaults for rookies: {rookie_drivers}")
+        for driver_id in rookie_drivers:
+            result_df.loc[driver_id, 'experience_level_track'] = 0
+            result_df.loc[driver_id, 'avg_finish_position_track'] = 15  # Conservative back of midfield
+            result_df.loc[driver_id, 'best_finish_position_track'] = 15
+            result_df.loc[driver_id, 'avg_points_track'] = 0
+    
     return result_df
 
 
