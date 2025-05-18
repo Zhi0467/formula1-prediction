@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./f1_predictor/data_ingest"
-    ]
-}
