@@ -39,6 +39,8 @@ class F1DataPreprocessor:
         self.feature_config = config.get('feature_engineering', {})
         self.lookback_races = self.feature_config.get('historical_lookback_races', 5)
         self.lookback_years = self.feature_config.get('historical_lookback_years', 2)
+        print(f"lookback years: {self.lookback_years}")
+        print(f"lookback races: {self.lookback_races}")
     
     def prepare_data_for_race(self, 
                              season: Union[int, str], 
@@ -68,8 +70,9 @@ class F1DataPreprocessor:
         
         # Step 4: Final cleanup to handle any remaining issues
         features_df = self._final_data_cleanup(features_df)
+        labels_df = self._get_race_labels(season=season, race=race)
         
-        return features_df
+        return features_df, labels_df
     
     def _fetch_race_data(self, 
                         season: Union[int, str], 
@@ -140,7 +143,7 @@ class F1DataPreprocessor:
         # Determine years to fetch based on lookback configuration
         current_year = int(season)
         lookback_years = list(range(current_year - self.lookback_years, current_year + 1))
-        max_races_per_year = 5  # Limit number of races to fetch per year to manage API calls
+        max_races_per_year = self.lookback_races  # Limit number of races to fetch per year to manage API calls
         
         print(f"\n--- DEBUG: Fetching historical data (optimized) ---")
         print(f"Current race: {season} Round {race}")
@@ -150,22 +153,27 @@ class F1DataPreprocessor:
         all_race_results = []
         
         # Process years in reverse chronological order (most recent first)
+        fetched_race_count = 0
         for year in reversed(lookback_years):
             if year == current_year:
                 # For current year, get individual races before the current one
+                if race == 'last':
+                    race_df = self.client.get_race_results(year, "last")
+                    race = int(race_df['round'].iloc[0])
                 if int(race) > 1:
                     # Fetch races in reverse order (most recent first)
                     races_to_fetch = range(int(race)-1, max(0, int(race)-max_races_per_year-1), -1)
                     for r in races_to_fetch:
                         print(f"Fetching race {r} from {year} (current year)")
                         race_result_df = self.client.get_race_results(year, r)
+                        fetched_race_count += 1
                         if not race_result_df.empty:
                             # Convert race_date to datetime
                             if 'race_date' in race_result_df.columns:
                                 race_result_df['race_date'] = pd.to_datetime(race_result_df['race_date'])
                             all_race_results.append(race_result_df)
                             print(f"  Found {len(race_result_df)} results for {year} race {r}")
-            else:
+            elif year < current_year and fetched_race_count < self.lookback_races:
                 print(f"Fetching most recent races from {year}")
                 last_race_df = self.client.get_race_results(year, "last")
                 
@@ -255,10 +263,10 @@ class F1DataPreprocessor:
             print(f"Fetching historical results for circuit: {current_circuit_id}")
             all_circuit_results = []
             for year in reversed(lookback_years):
-                track_results_df = self.client.get_circuit_results(season= year, circuit_id = current_circuit_id)
+                track_results_df = self.client.get_circuit_results(season= year - 1, circuit_id = current_circuit_id)
                 all_circuit_results.append(track_results_df)
                 if not track_results_df.empty:
-                    print(f"Found {len(track_results_df)} historical results for {current_circuit_id} at year {year}")
+                    print(f"Found {len(track_results_df)} historical results for {current_circuit_id} at year {year - 1}")
             all_circuit_results_pd = pd.concat(all_circuit_results, ignore_index=True)
             historical_data['track_results'] = all_circuit_results_pd
         
@@ -466,6 +474,80 @@ class F1DataPreprocessor:
         
         return cleaned_df
 
+    def _get_race_labels(self, season: Union[int, str], race: Union[int, str]) -> pd.DataFrame:
+        """
+        Get race labels (final positions and times) for a specific race.
+        
+        Args:
+            season: F1 season (year)
+            race: Race number
+            
+        Returns:
+            DataFrame with columns:
+            - final_position: final race position (20 for DNFs)
+            - race_time_millis: total race time in milliseconds (NaN for DNFs)
+            - delta_pos: position change from grid to finish
+        """
+        # Fetch race results
+        race_results = self.client.get_race_results(season, race)
+        
+        if race_results.empty:
+            print(f"No race results found for {season} race {race}")
+            return pd.DataFrame()
+        
+        # Initialize list to store processed results
+        processed_results = []
+        
+        # Process each result
+        for _, row in race_results.iterrows():
+            # Get basic info
+            driver_id = row.get('driver_id')
+            status = row.get('status', '')
+            grid_pos = row.get('grid_position')
+            
+            if status.lower() == 'finished' or status.lower() == 'lapped':
+                final_position = row.get('position')
+                # Use the directly extracted millisecond time from the client
+                race_time = row.get('finish_time_sec')
+            else:
+                final_position = 20  # Set to last position for DNFs/non-finishers
+                race_time = None
+            
+            result = {
+                'driver_id': driver_id,
+                'final_position': final_position,
+                'final_time' : race_time,
+                'grid_position': grid_pos
+            }
+            
+            processed_results.append(result)
+        
+        # Create DataFrame
+        labels_df = pd.DataFrame(processed_results)
+        
+        # Convert numeric columns
+        numeric_cols = ['final_position', 'final_time', 'grid_position']
+        for col in numeric_cols:
+            if col in labels_df.columns:
+                labels_df[col] = pd.to_numeric(labels_df[col], errors='coerce')
+        
+        # Calculate position delta (grid to finish)
+        if 'grid_position' in labels_df.columns and 'final_position' in labels_df.columns:
+            # For DNFs (final_position = 20), delta_pos should be grid_position - 20
+            labels_df['delta_pos'] = labels_df['grid_position'] - labels_df['final_position']
+        
+        # Drop grid_position as it's no longer needed
+        if 'grid_position' in labels_df.columns:
+            labels_df = labels_df.drop('grid_position', axis=1)
+        
+        # Set driver_id as index
+        if 'driver_id' in labels_df.columns:
+            labels_df = labels_df.set_index('driver_id')
+        
+        # Print debug info
+        print(labels_df)
+        
+        return labels_df
 
 # Example usage:
 if __name__ == "__main__":

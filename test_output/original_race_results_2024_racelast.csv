@@ -1,0 +1,21 @@
+,season,round,race_name,circuit_id,circuit_name,race_date,driver_id,driver_code,driver_number,driver_name,team_id,team_name,position,grid_position,points,laps,finish_time,status,finish_time_sec
+0,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,norris,NOR,4,Lando Norris,mclaren,McLaren,1,1,25.0,58,1:26:33.291,Finished,5193.291
+1,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,sainz,SAI,55,Carlos Sainz,ferrari,Ferrari,2,3,18.0,58,+5.832,Finished,5199.1230000000005
+2,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,leclerc,LEC,16,Charles Leclerc,ferrari,Ferrari,3,19,15.0,58,+31.928,Finished,5225.219
+3,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,hamilton,HAM,44,Lewis Hamilton,mercedes,Mercedes,4,16,12.0,58,+36.483,Finished,5229.774
+4,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,russell,RUS,63,George Russell,mercedes,Mercedes,5,6,10.0,58,+37.538,Finished,5230.829
+5,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,max_verstappen,VER,33,Max Verstappen,red_bull,Red Bull,6,4,8.0,58,+49.847,Finished,5243.138
+6,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,gasly,GAS,10,Pierre Gasly,alpine,Alpine F1 Team,7,5,6.0,58,+1:12.560,Finished,5265.851000000001
+7,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,hulkenberg,HUL,27,Nico Hülkenberg,haas,Haas F1 Team,8,7,4.0,58,+1:15.554,Finished,5268.845
+8,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,alonso,ALO,14,Fernando Alonso,aston_martin,Aston Martin,9,8,2.0,58,+1:22.373,Finished,5275.664
+9,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,piastri,PIA,81,Oscar Piastri,mclaren,McLaren,10,2,1.0,58,+1:23.821,Finished,5277.112
+10,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,albon,ALB,23,Alexander Albon,williams,Williams,11,18,0.0,57,+11.251,Lapped,5288.363
+11,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,tsunoda,TSU,22,Yuki Tsunoda,rb,RB F1 Team,12,11,0.0,57,+14.738,Lapped,5291.85
+12,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,zhou,ZHO,24,Guanyu Zhou,sauber,Sauber,13,15,0.0,57,+17.304,Lapped,5294.416
+13,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,stroll,STR,18,Lance Stroll,aston_martin,Aston Martin,14,13,0.0,57,+18.473,Lapped,5295.585
+14,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,doohan,DOO,7,Jack Doohan,alpine,Alpine F1 Team,15,17,0.0,57,+26.555,Lapped,5303.667
+15,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,kevin_magnussen,MAG,20,Kevin Magnussen,haas,Haas F1 Team,16,14,0.0,57,+1:17.597,Lapped,5354.709
+16,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,lawson,LAW,30,Liam Lawson,rb,RB F1 Team,17,12,0.0,55,+-1:58:03.658,Retired,
+17,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,bottas,BOT,77,Valtteri Bottas,sauber,Sauber,18,9,0.0,30,,Retired,
+18,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,colapinto,COL,43,Franco Colapinto,williams,Williams,19,20,0.0,26,,Retired,
+19,2024,24,Abu Dhabi Grand Prix,yas_marina,Yas Marina Circuit,2024-12-08,perez,PER,11,Sergio Pérez,red_bull,Red Bull,20,10,0.0,0,,Retired,

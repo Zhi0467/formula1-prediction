@@ -1,0 +1,11 @@
+,season,round,position,constructor_id,constructor_name,nationality,points,wins
+0,2024,10,1,red_bull,Red Bull,Austrian,330.0,7
+1,2024,10,2,ferrari,Ferrari,Italian,270.0,2
+2,2024,10,3,mclaren,McLaren,British,237.0,1
+3,2024,10,4,mercedes,Mercedes,German,151.0,0
+4,2024,10,5,aston_martin,Aston Martin,British,58.0,0
+5,2024,10,6,rb,RB F1 Team,Italian,28.0,0
+6,2024,10,7,alpine,Alpine F1 Team,French,8.0,0
+7,2024,10,8,haas,Haas F1 Team,American,7.0,0
+8,2024,10,9,williams,Williams,British,2.0,0
+9,2024,10,10,sauber,Sauber,Swiss,0.0,0

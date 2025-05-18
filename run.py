@@ -141,7 +141,7 @@ def test_f1_data_preprocessor():
             'historical_lookback_races': 5,
             'historical_lookback_years': 1, # Adjusted for faster testing
             'core_features': {
-                'recent_k_races': 5, # Adjusted for faster testing
+                'recent_k_races': 3, # Adjusted for faster testing
                 'include_qualifying_data': True,
                 'include_historical_features': True,
                 'include_standings_features': True,
@@ -169,53 +169,15 @@ def test_f1_data_preprocessor():
 
     preprocessor = F1DataPreprocessor(config)
     try:
-        season = 2023
-        race = 1
-        print(f"Preparing data for {season} Season, Race {race}...")
-        
-        # Capture the original data first
-        print("Fetching original data...")
-        client = preprocessor.client
-        
-        # Get original data
-        original_data = {}
-        original_data['qualifying'] = client.get_qualifying_results(season, race)
-        original_data['race_results'] = client.get_race_results(season, race)
-        original_data['driver_standings'] = client.get_driver_standings(season, race)
-        original_data['constructor_standings'] = client.get_constructor_standings(season, race)
-        original_data['circuits'] = client.get_circuits(season)
-        
-        # Save original data
-        for key, df in original_data.items():
-            if not df.empty:
-                file_path = f"{output_dir}/original_{key}_{season}_race{race}.csv"
-                df.to_csv(file_path)
-                print(f"Saved {key} data to {file_path}, shape: {df.shape}")
-        
+        season = 2024
+        race = 'last'
+
         # Generate the processed features
-        features_df = preprocessor.prepare_data_for_race(season=season, race=race, fetch_weather=False)
+        features_df, labels_df = preprocessor.prepare_data_for_race(season=season, race=race, fetch_weather=False)
         
         # Save processed features
         features_file = f"{output_dir}/processed_features_{season}_race{race}.csv"
         features_df.to_csv(features_file)
-        print(f"Successfully prepared data. Shape: {features_df.shape}")
-        print(f"Saved processed features to {features_file}")
-        
-        # Print some statistics for comparison
-        print("\nFeature Statistics:")
-        print(f"Number of features: {features_df.shape[1]}")
-        print(f"Number of drivers: {features_df.shape[0]}")
-        print("\nFeature types:")
-        feature_types = features_df.dtypes.value_counts()
-        print(feature_types)
-        
-        # Print some sample features
-        print("\nSample features (first 5 columns, first 3 rows):")
-        print(features_df.iloc[:3, :5])
-        
-        # List all feature columns for reference
-        print("\nAll feature columns:")
-        print(features_df.columns.tolist())
         
     except Exception as e:
         print(f"An error occurred during F1DataPreprocessor test: {e}")

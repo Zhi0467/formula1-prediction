@@ -17,6 +17,7 @@ import requests
 import pandas as pd
 from typing import Dict, Any, List, Optional, Union
 from time import sleep
+import numpy as np
 
 class JolpicaClient:
     """
@@ -81,21 +82,68 @@ class JolpicaClient:
             circuit_id = circuit_info.get('circuitId') # Get circuitId
             circuit_name = circuit_info.get('circuitName')
             race_date = race_entry.get('date')
-            
+            finish_time_sec = 0.0
+            winner_time = 0.0
+            prev_plus_one = False
+            prev_increment = 0.0
+            def time_to_seconds(time_str):
+                winner = False
+                plus_one_exist = False
+                if pd.isna(time_str):
+                    return winner, plus_one_exist, np.nan
+                if time_str.startswith("+-"):
+                    return True, True, np.nan
+                       
+                if time_str.startswith('+'):  # Fixed typo
+                    time_str = time_str[1:]  # Corrected removal of '+'
+                    if ':' in time_str:
+                        parts = time_str.split(':')
+                        minutes, seconds = parts
+                        plus_one_exist = True
+                        return winner, plus_one_exist, float(seconds) + 60 * float(minutes)
+                    else:
+                        return winner, plus_one_exist, float(time_str)
+                else:   
+                    if ':' in time_str:
+                        parts = time_str.split(':')
+                        if len(parts) == 2:  # MM:SS.sss
+                            minutes, seconds = parts
+                            return winner, plus_one_exist, float(minutes) * 60 + float(seconds)
+                        elif len(parts) == 3:  # HH:MM:SS.sss
+                            winner = True
+                            hours, minutes, seconds = parts
+                            return winner, plus_one_exist, float(hours) * 3600 + float(minutes) * 60 + float(seconds)
+
+
             for result in race_entry.get('Results', []):
                 driver_data = result.get('Driver', {})
                 constructor_data = result.get('Constructor', {})
-                
                 grid_pos = int(result.get('grid', 0))
-                
-                finish_time_info = result.get('Time', {})
+                status = result.get('status')
+                finish_time_info = result.get('Time', {}) # Get the 'Time' object from API result
+                race_time_str_api = None
+
                 if finish_time_info and 'time' in finish_time_info:
-                    finish_time = finish_time_info['time']
-                    status = "Finished"
+                    race_time_str_api = finish_time_info['time'] # String format e.g., "1:23.456"
+                    winner, plus_one, increment_to_winner = time_to_seconds(race_time_str_api)
+                    if winner and plus_one:
+                        status = "Retired"
+                    if winner:
+                        finish_time_sec = increment_to_winner
+                        winner_time = increment_to_winner
+                    elif not plus_one and prev_plus_one:
+                        winner_time += prev_increment
+                        finish_time_sec = winner_time + increment_to_winner 
+                    else: 
+                        finish_time_sec = winner_time + increment_to_winner
+                    prev_plus_one = plus_one
+                    prev_increment = increment_to_winner
+
                 else:
-                    finish_time = None
+                    race_time_str_api = None
                     status = result.get('status', "Unknown")
-                
+                    finish_time_sec = None # No time info for non-finishers
+
                 results.append({
                     'season': season,
                     'round': race_entry.get('round', ''),  # Add round number from race data
@@ -113,8 +161,9 @@ class JolpicaClient:
                     'grid_position': grid_pos,
                     'points': float(result.get('points', 0.0)),
                     'laps': int(result.get('laps', 0)),
-                    'finish_time': finish_time,
-                    'status': status
+                    'finish_time': race_time_str_api,
+                    'status': status,
+                    'finish_time_sec': finish_time_sec
                 })
         
         return pd.DataFrame(results)
@@ -350,6 +399,7 @@ class JolpicaClient:
         return pd.DataFrame(circuits)
     
     def get_circuit_results(self, season: Union[int, str], circuit_id: str) -> pd.DataFrame:
+
         """
         Get historical race results for a specific circuit.
         
@@ -413,3 +463,13 @@ class JolpicaClient:
                 })
         
         return pd.DataFrame(results) 
+    
+def main():
+    config = {}
+    client = JolpicaClient(config=config)
+    result_df = client.get_race_results(season=2024, race = 10)
+    finish_time = result_df[['finish_time', 'finish_time_sec', 'status']]
+    print(finish_time)
+
+if __name__ == "__main__":
+    main()

@@ -559,7 +559,8 @@ def preprocess_data(df: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
     time_cols_to_convert = [col for col in result_df.columns if 'time' in col.lower() or 'duration' in col.lower()]
     for time_col in time_cols_to_convert:
         if result_df[time_col].dtype == 'object': # Only try to convert if it's a string object
-            result_df = convert_lap_times_to_seconds(result_df, time_col=time_col)
+            #result_df = convert_lap_times_to_seconds(result_df, time_col=time_col)
+            pass
     
     # Additional preprocessing based on config
     if preproc_config.get('normalize_features', False):

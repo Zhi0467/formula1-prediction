@@ -33,9 +33,7 @@ def compute_core_features(
     Returns:
         DataFrame with core features for all drivers.
     """
-    print("\n--- Debug: compute_core_features (Start) ---")
-    print(f"Available keys in race_data: {list(race_data.keys())}")
-    print(f"Available keys in historical_data: {list(historical_data.keys())}")
+
 
     qualifying_df = race_data.get('qualifying', pd.DataFrame())
     drivers_info_df = race_data.get('drivers', pd.DataFrame())
@@ -44,7 +42,6 @@ def compute_core_features(
     if not qualifying_df.empty:
         print(f"Debug: qualifying_df columns: {qualifying_df.columns.tolist()}")
         if 'driver_id' in qualifying_df.columns:
-            print(f"Debug: qualifying_df['driver_id'] raw unique: {qualifying_df['driver_id'].unique()}")
             # Filter out None or NaN from driver IDs used for index
             valid_q_driver_ids = [did for did in qualifying_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
             # print(f"Debug: qualifying_df['driver_id'] valid unique for index: {valid_q_driver_ids}")
@@ -55,7 +52,6 @@ def compute_core_features(
     if not drivers_info_df.empty:
         # print(f"Debug: drivers_info_df columns: {drivers_info_df.columns.tolist()}")
         if 'driver_id' in drivers_info_df.columns:
-            print(f"Debug: drivers_info_df['driver_id'] raw unique: {drivers_info_df['driver_id'].unique()}")
             valid_d_driver_ids = [did for did in drivers_info_df['driver_id'].unique() if pd.notna(did) and str(did).strip() != '']
             #print(f"Debug: drivers_info_df['driver_id'] valid unique for index: {valid_d_driver_ids}")
         else:
@@ -63,6 +59,7 @@ def compute_core_features(
     
     feature_config = config.get('feature_engineering', {}).get('core_features', {})
     recent_k_races = feature_config.get('recent_k_races', 5)
+    print(f"the recent {recent_k_races} races are processed in core features")
     
     # Initialize features_df to None, to clearly track if it gets created
     initialized_features_df = None
@@ -194,8 +191,7 @@ def compute_core_features(
     if include_domain_knowledge and domain_knowledge_config: # Check if domain_knowledge config exists and is not empty
         features_df = _add_domain_knowledge_features(features_df, domain_knowledge_config) # Pass sub-config
     
-    print(f"Debug: result_df columns before returning: {features_df.columns.tolist()}")
-    print(f"--- End Debug: compute_core_features ---\n")
+
     return features_df
 
 def _add_qualifying_features(features_df: pd.DataFrame, qualifying_df: pd.DataFrame) -> pd.DataFrame:
@@ -335,11 +331,7 @@ def _add_historical_performance_features(
     Add features based on historical race performance with improved date handling.
     """
     result_df = features_df.copy()
-    
-    # Debug information
-    print("\n--- DEBUG: Adding historical performance features ---")
-    print(f"Input features_df has {len(result_df)} drivers")
-    print(f"Historical race_results_df has {len(race_results_df)} rows")
+
     
     # Create columns with NaN values for all drivers first
     history_cols = [
@@ -393,20 +385,6 @@ def _add_historical_performance_features(
             print(f"WARNING: No race_date column for {driver_id}, using last {recent_k_races} rows")
             recent_races = driver_races.iloc[-recent_k_races:]
         
-        # Debug for key drivers
-        if driver_id in ['max_verstappen', 'leclerc', 'perez']:
-            print(f"\nDetailed analysis for {driver_id}:")
-            print(f"Total historical races: {len(driver_races)}")
-            print(f"Recent {recent_k_races} races:")
-            if 'race_date' in recent_races.columns:
-                display_df = recent_races[['race_name', 'race_date', 'position', 'points']]
-                print(display_df.sort_values('race_date', ascending=False))
-            
-            if 'position' in recent_races.columns:
-                positions = recent_races['position'].tolist()
-                avg_pos = sum(positions) / len(positions) if positions else float('nan')
-                print(f"Position values: {positions}")
-                print(f"Average position: {avg_pos}")
         
         # Calculate metrics for each driver based on their recent races
         if not recent_races.empty:
@@ -568,8 +546,6 @@ def _add_track_specific_features(
         if col not in result_df.columns:
             result_df[col] = np.nan
     
-    # Debug information
-    print(f"\n--- DEBUG: Adding track-specific features ---")
     
     # Early exit if no race results
     if race_results_df.empty:
@@ -598,6 +574,7 @@ def _add_track_specific_features(
         # Process each driver's track history
         for driver_id in result_df.index:
             driver_track_results = track_results[track_results['driver_id'] == driver_id]
+
             
             # Skip if no track history for this driver
             if driver_track_results.empty:

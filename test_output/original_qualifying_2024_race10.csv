@@ -1,0 +1,21 @@
+,season,race_name,circuit_name,race_date,driver_id,driver_code,driver_number,driver_name,team_id,team_name,position,Q1,Q2,Q3
+0,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,norris,NOR,4,Lando Norris,mclaren,McLaren,1,1:12.386,1:11.872,1:11.383
+1,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,max_verstappen,VER,33,Max Verstappen,red_bull,Red Bull,2,1:12.306,1:11.653,1:11.403
+2,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,hamilton,HAM,44,Lewis Hamilton,mercedes,Mercedes,3,1:12.143,1:11.792,1:11.701
+3,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,russell,RUS,63,George Russell,mercedes,Mercedes,4,1:12.456,1:11.812,1:11.703
+4,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,leclerc,LEC,16,Charles Leclerc,ferrari,Ferrari,5,1:12.257,1:12.038,1:11.731
+5,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,sainz,SAI,55,Carlos Sainz,ferrari,Ferrari,6,1:12.403,1:11.874,1:11.736
+6,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,gasly,GAS,10,Pierre Gasly,alpine,Alpine F1 Team,7,1:12.651,1:12.079,1:11.857
+7,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,perez,PER,11,Sergio Pérez,red_bull,Red Bull,8,1:12.477,1:12.054,1:12.061
+8,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,ocon,OCO,31,Esteban Ocon,alpine,Alpine F1 Team,9,1:12.691,1:12.109,1:12.125
+9,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,piastri,PIA,81,Oscar Piastri,mclaren,McLaren,10,1:12.460,1:12.011,
+10,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,alonso,ALO,14,Fernando Alonso,aston_martin,Aston Martin,11,1:12.505,1:12.128,
+11,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,bottas,BOT,77,Valtteri Bottas,sauber,Sauber,12,1:12.758,1:12.227,
+12,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,hulkenberg,HUL,27,Nico Hülkenberg,haas,Haas F1 Team,13,1:12.708,1:12.310,
+13,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,stroll,STR,18,Lance Stroll,aston_martin,Aston Martin,14,1:12.881,1:12.372,
+14,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,zhou,ZHO,24,Guanyu Zhou,sauber,Sauber,15,1:12.880,1:12.738,
+15,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,kevin_magnussen,MAG,20,Kevin Magnussen,haas,Haas F1 Team,16,1:12.937,,
+16,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,tsunoda,TSU,22,Yuki Tsunoda,rb,RB F1 Team,17,1:12.985,,
+17,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,ricciardo,RIC,3,Daniel Ricciardo,rb,RB F1 Team,18,1:13.075,,
+18,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,albon,ALB,23,Alexander Albon,williams,Williams,19,1:13.153,,
+19,2024,Spanish Grand Prix,Circuit de Barcelona-Catalunya,2024-06-23,sargeant,SAR,2,Logan Sargeant,williams,Williams,20,1:13.509,,
