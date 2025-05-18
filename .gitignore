@@ -6,6 +6,9 @@ f1/
 # This will ignore the entire test_output directory
 test_output/
 
+# VS Code specific settings
+.vscode/
+
 # --- General Python ignores (recommended) ---
 # Byte-compiled / optimized / DLL files
 __pycache__/
