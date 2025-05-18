@@ -41,6 +41,7 @@ class F1DataPreprocessor:
         self.lookback_years = self.feature_config.get('historical_lookback_years', 2)
         print(f"lookback years: {self.lookback_years}")
         print(f"lookback races: {self.lookback_races}")
+        self.fetch_weather = self.feature_config.get('core_features').get('include_weather_data', False)
     
     def prepare_data_for_race(self, 
                              season: Union[int, str], 
@@ -58,6 +59,7 @@ class F1DataPreprocessor:
             Feature DataFrame ready for model input
         """
         # Step 1: Collect all required data
+        fetch_weather = self.fetch_weather
         race_data = self._fetch_race_data(season, race, fetch_weather)
         historical_data = self._fetch_historical_data(season, race)
         

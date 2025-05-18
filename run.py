@@ -138,10 +138,10 @@ def test_f1_data_preprocessor():
             'client': {'api_key': None, 'cache_ttl': 3600}
         },
         'feature_engineering': {
-            'historical_lookback_races': 5,
+            'historical_lookback_races': 2,
             'historical_lookback_years': 1, # Adjusted for faster testing
             'core_features': {
-                'recent_k_races': 3, # Adjusted for faster testing
+                'recent_k_races': 2, # Adjusted for faster testing
                 'include_qualifying_data': True,
                 'include_historical_features': True,
                 'include_standings_features': True,
@@ -170,10 +170,10 @@ def test_f1_data_preprocessor():
     preprocessor = F1DataPreprocessor(config)
     try:
         season = 2024
-        race = 'last'
+        race = 14
 
         # Generate the processed features
-        features_df, labels_df = preprocessor.prepare_data_for_race(season=season, race=race, fetch_weather=False)
+        features_df, labels_df = preprocessor.prepare_data_for_race(season=season, race=race)
         
         # Save processed features
         features_file = f"{output_dir}/processed_features_{season}_race{race}.csv"
@@ -185,16 +185,153 @@ def test_f1_data_preprocessor():
         traceback.print_exc()
     print("-" * 50)
 
+def test_build_dataset():
+    """Test function to build the complete F1 prediction dataset."""
+    print("Testing dataset builder...")
+    from f1_predictor.data.build_data import F1DatasetBuilder
+    import os
 
+    # Create output directory if it doesn't exist
+    output_dir = "test_output/dataset"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Configuration for the preprocessor
+    config = {
+        'data_ingest': {
+            'client': {
+                'api_key': None,
+                'cache_ttl': 3600,
+            }
+        },
+        'feature_engineering': {
+            'historical_lookback_races': 5,
+            'historical_lookback_years': 1,
+            'core_features': {
+                'recent_k_races': 5,
+                'include_qualifying_data': True,
+                'include_historical_features': True,
+                'include_standings_features': True,
+                'include_track_specific_features': True,
+                'include_track_type_features': False,
+                'include_weather_data': False,
+                'include_domain_knowledge_features': False
+            },
+            'preprocessing': {
+                'categorical_encoding': 'one-hot',
+                'scale_features': True,
+                'scaling_method': 'standard'
+            },
+            'common': {
+                'standardize_driver_names': True,
+                'standardize_team_names': True,
+                'missing_values': {
+                    'numeric_strategy': 'mean',
+                    'categorical_strategy': 'mode'
+                }
+            }
+        }
+    }
+
+    try:
+        # Initialize dataset builder
+        builder = F1DatasetBuilder(config, output_dir=output_dir)
+        
+        # Build dataset for 2024 season
+        features_df, labels_df = builder.build_season_dataset(
+            season=2024,
+            start_race=1
+        )
+        
+        print("Dataset building completed successfully")
+        print(f"Final features shape: {features_df.shape}")
+        print(f"Final labels shape: {labels_df.shape}")
+        
+    except Exception as e:
+        print(f"Error building dataset: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    print("-" * 50)
+
+def test_build_multiple_seasons():
+    """Test function to build dataset for multiple seasons."""
+    print("Testing multiple seasons dataset builder...")
+    from f1_predictor.data.build_data import F1DatasetBuilder
+    import os
+
+    # Create output directory if it doesn't exist
+    output_dir = "test_output/dataset"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Configuration for the preprocessor
+    config = {
+        'data_ingest': {
+            'client': {
+                'api_key': None,
+                'cache_ttl': 3600,
+            }
+        },
+        'feature_engineering': {
+            'historical_lookback_races': 5,
+            'historical_lookback_years': 1,
+            'core_features': {
+                'recent_k_races': 5,
+                'include_qualifying_data': True,
+                'include_historical_features': True,
+                'include_standings_features': True,
+                'include_track_specific_features': True,
+                'include_track_type_features': False,
+                'include_weather_data': False,
+                'include_domain_knowledge_features': False
+            },
+            'preprocessing': {
+                'categorical_encoding': 'one-hot',
+                'scale_features': True,
+                'scaling_method': 'standard'
+            },
+            'common': {
+                'standardize_driver_names': True,
+                'standardize_team_names': True,
+                'missing_values': {
+                    'numeric_strategy': 'mean',
+                    'categorical_strategy': 'mode'
+                }
+            }
+        }
+    }
+
+    try:
+        # Initialize dataset builder
+        builder = F1DatasetBuilder(config, output_dir=output_dir)
+        
+        # Build dataset for multiple seasons (e.g., 2022-2024)
+        features_df, labels_df = builder.build_multiple_seasons_dataset(
+            start_season=2022,
+            end_season=2024
+        )
+        
+        print("Dataset building completed successfully")
+        print(f"Final features shape: {features_df.shape}")
+        print(f"Final labels shape: {labels_df.shape}")
+        
+        # Print some statistics about the dataset
+        print("\nDataset Statistics:")
+        print(f"Total seasons: {len(features_df['season'].unique())}")
+        print(f"Total races: {len(features_df[['season', 'race']].drop_duplicates())}")
+        print(f"Total drivers: {len(features_df['driver_id'].unique())}")
+        print(f"Total DNFs: {(labels_df['final_position'] == 20).sum()}")
+        
+    except Exception as e:
+        print(f"Error building dataset: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    print("-" * 50)
+
+# Add to the main block in run.py
 if __name__ == "__main__":
-    print("Starting F1 Predictor Test Runner...")
-    
-    # --- CHOOSE WHICH TEST TO RUN ---
-    # Uncomment the test you want to execute.
-    
-    # test_jolpica_client()
-    # test_common_preprocessing()
-    # test_get_driver_standings_client() 
-    # Test this specific function
-    test_f1_data_preprocessor() 
+
+    test_build_multiple_seasons()  # Add this line
+
+
     

@@ -1,0 +1,5 @@
+total_races: 68
+total_drivers: 1359
+total_features: 21
+total_dnfs: 288
+date_created: 20250519_012431

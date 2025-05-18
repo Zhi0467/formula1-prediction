@@ -18,6 +18,7 @@ import pandas as pd
 from typing import Dict, Any, List, Optional, Union
 from time import sleep
 import numpy as np
+from functools import lru_cache
 
 class JolpicaClient:
     """
@@ -55,6 +56,7 @@ class JolpicaClient:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error making request to Jolpica API: {str(e)}")
     
+    @lru_cache(maxsize=32)
     def get_race_results(self, season: Union[int, str], race: Optional[Union[int, str]] = None) -> pd.DataFrame:
         """
         Get race results for a specific season and optionally a specific race.
@@ -168,6 +170,7 @@ class JolpicaClient:
         
         return pd.DataFrame(results)
     
+    @lru_cache(maxsize=32)
     def get_qualifying_results(self, season: Union[int, str], race: Optional[Union[int, str]] = None) -> pd.DataFrame:
         """
         Get qualifying results for a specific season and optionally a specific race.
@@ -220,6 +223,7 @@ class JolpicaClient:
         
         return pd.DataFrame(qualifying_results)
     
+    @lru_cache(maxsize=32)
     def get_driver_standings(self, season: Union[int, str], round_num: Optional[Union[int, str]] = None) -> pd.DataFrame:
         """
         Get driver standings for a specific season and optionally after a specific round.
@@ -277,6 +281,7 @@ class JolpicaClient:
         
         return pd.DataFrame(drivers_standings)
     
+    @lru_cache(maxsize=32)
     def get_constructor_standings(self, season: Union[int, str], round_num: Optional[Union[int, str]] = None) -> pd.DataFrame:
         """
         Get constructor/team standings for a specific season and optionally after a specific round.
@@ -318,6 +323,7 @@ class JolpicaClient:
         
         return pd.DataFrame(constructor_standings)
     
+    @lru_cache(maxsize=128)
     def get_lap_times(self, season: Union[int, str], round_num: Union[int, str], 
                        driver_id: Optional[str] = None) -> pd.DataFrame:
         """
@@ -364,6 +370,7 @@ class JolpicaClient:
         
         return pd.DataFrame(lap_times)
     
+    @lru_cache(maxsize=32)
     def get_circuits(self, season: Optional[Union[int, str]] = None) -> pd.DataFrame:
         """
         Get circuit information, optionally for a specific season.
@@ -398,6 +405,7 @@ class JolpicaClient:
         
         return pd.DataFrame(circuits)
     
+    @lru_cache(maxsize=32)
     def get_circuit_results(self, season: Union[int, str], circuit_id: str) -> pd.DataFrame:
 
         """

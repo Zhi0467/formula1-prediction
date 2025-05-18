@@ -132,11 +132,11 @@ def compute_core_features(
             recent_k_races
         )
     
-    if include_standings and 'driver_standings' in historical_data and not historical_data['driver_standings'].empty:
-        current_constructor_standings = historical_data.get('constructor_standings', pd.DataFrame())
+    if include_standings and 'drivers' in race_data and not race_data['drivers'].empty:
+        current_constructor_standings = race_data.get('teams', pd.DataFrame())
         features_df = _add_standings_features(
             features_df, 
-            historical_data['driver_standings'],
+            race_data['drivers'],
             current_constructor_standings,
             race_data  # Pass the race_data to _add_standings_features
         )
@@ -179,7 +179,6 @@ def compute_core_features(
             for col in placeholder_cols:
                 if col not in features_df.columns:
                      features_df[col] = np.nan
-
 
     if include_track_type and 'circuit' in race_data and not race_data['circuit'].empty:
         features_df = _add_track_type_features(features_df, race_data['circuit'])
@@ -393,8 +392,6 @@ def _add_historical_performance_features(
                 if not recent_races['position'].isnull().all():  # Make sure we have valid positions
                     avg_pos = recent_races['position'].mean()
                     result_df.loc[driver_id, 'avg_finish_position_recent'] = avg_pos
-                    if driver_id in ['max_verstappen', 'leclerc', 'hamilton']:
-                        print(f"{driver_id} avg_position = {avg_pos} from values {recent_races['position'].tolist()}")
             
             # Calculate finishing consistency (standard deviation of positions)
             if 'position' in recent_races.columns and len(recent_races) > 1:
@@ -465,8 +462,6 @@ def _add_standings_features(
         
         # Select columns for merging, handling columns that might not exist
         columns_to_select = ['driver_id', 'position', 'points', 'wins']
-        if 'constructor_ids' in current_standings.columns:
-            columns_to_select.append('constructor_ids')
             
         standings_features = current_standings[columns_to_select]
         standings_features = standings_features.rename(columns={
@@ -517,7 +512,6 @@ def _add_standings_features(
                 
                 if not team_row.empty:
                     result_df.loc[driver_id, 'team_championship_position'] = team_row['position'].values[0]
-                    result_df.loc[driver_id, 'team_championship_points'] = team_row['points'].values[0]
                     result_df.loc[driver_id, 'team_season_wins'] = team_row['wins'].values[0]
             else:
                 print(f"No constructor mapping found for {driver_id}")
